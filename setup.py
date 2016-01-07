@@ -48,7 +48,7 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=['examples']),
     namespace_packages=['sprockets', 'sprockets.clients'],
     install_requires=read_requirements('installation.txt'),
     tests_require=read_requirements('testing.txt'),
