@@ -1,6 +1,6 @@
 import logging
 
-from tornado import gen, httpclient, web
+from tornado import gen, httpclient, httputil, web
 
 
 def default_error_handler(handler_, request_, error):
@@ -20,9 +20,14 @@ def default_error_handler(handler_, request_, error):
     that the server framework expects.
 
     """
-    exc = web.HTTPError(error.code)
-    if getattr(error, 'response'):
-        exc.reason = error.response.reason
+    if error.code == 599:  # tornado custom response code
+        exc = web.HTTPError(503, 'API Timeout')
+    else:
+        exc = web.HTTPError(error.code)
+        if getattr(error, 'response'):
+            exc.reason = error.response.reason
+        if exc.reason is None:
+            exc.reason = httputil.responses.get(error.code, 'Unknown Error')
     raise exc
 
 

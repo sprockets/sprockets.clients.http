@@ -28,8 +28,14 @@ class TestingHandler(http.ClientMixin, web.RequestHandler):
 
     @gen.coroutine
     def get(self, status_code):
-        response = yield self.make_http_request('http://httpbin.org',
-                                                'status', status_code)
+        kwargs = {}
+        server = self.get_query_argument('server',
+                                         default='http://httpbin.org')
+        conn_timeout = self.get_query_argument('connect_timeout', None)
+        if conn_timeout is not None:
+            kwargs['connect_timeout'] = float(conn_timeout)
+        response = yield self.make_http_request(server, 'status',
+                                                status_code, **kwargs)
         self.logger.info('got it')
         self.set_status(response.code)
 
@@ -95,6 +101,9 @@ class MixinTests(testing.AsyncHTTPTestCase):
 
     def get_app(self):
         app = request_handler.make_application()
+        app.add_handlers(r'.*', [
+            web.url('/testing/(?P<status_code>\d+)', TestingHandler),
+        ])
         return app
 
     def test_that_response_is_returned(self):
@@ -110,3 +119,10 @@ class MixinTests(testing.AsyncHTTPTestCase):
     def test_that_mixin_supports_custom_response_codes(self):
         response = self.fetch('/601')
         self.assertEqual(response.code, 601)
+
+    def test_that_mixin_translates_timeouts_to_503(self):
+        # sending a HTTP request to example.com:7 reliably times out
+        response = self.fetch('/testing/200'
+                              '?server=http%3a%2f%2fexample.com:7'
+                              '&connect_timeout=0.1')
+        self.assertEqual(response.code, 503)
