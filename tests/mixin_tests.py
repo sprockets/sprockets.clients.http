@@ -2,9 +2,10 @@ import json
 import logging
 import uuid
 
-from tornado import testing
+from tornado import gen, testing, web
 
 from examples import request_handler
+from sprockets.clients import http
 
 
 class RecordingHandler(logging.Handler):
@@ -19,21 +20,39 @@ class RecordingHandler(logging.Handler):
         self.lines.append(self.format(record))
 
 
+class TestingHandler(http.ClientMixin, web.RequestHandler):
+
+    def initialize(self):
+        self.logger = logging.getLogger('testing')
+        super(TestingHandler, self).initialize()
+
+    @gen.coroutine
+    def get(self, status_code):
+        response = yield self.make_http_request('http://httpbin.org',
+                                                'status', status_code)
+        self.logger.info('got it')
+        self.set_status(response.code)
+
+
 class LoggingTests(testing.AsyncHTTPTestCase):
 
     def setUp(self):
         super(LoggingTests, self).setUp()
         self.log_handler = RecordingHandler(level=logging.DEBUG)
-        logger = logging.getLogger('HttpBinHandler')
-        logger.addHandler(self.log_handler)
+        logging.getLogger('HttpBinHandler').addHandler(self.log_handler)
+        logging.getLogger('testing').addHandler(self.log_handler)
 
     def tearDown(self):
         super(LoggingTests, self).tearDown()
-        logger = logging.getLogger('HttpBinHandler')
-        logger.removeHandler(self.log_handler)
+        logging.getLogger('HttpBinHandler').removeHandler(self.log_handler)
+        logging.getLogger('testing').removeHandler(self.log_handler)
 
     def get_app(self):
-        return request_handler.make_application()
+        app = request_handler.make_application()
+        app.add_handlers(r'.*', [
+            web.url('/testing/(?P<status_code>\d+)', TestingHandler),
+        ])
+        return app
 
     def find_log_line_containing(self, value):
         for index, line in enumerate(self.log_handler.lines):
@@ -62,6 +81,14 @@ class LoggingTests(testing.AsyncHTTPTestCase):
             'GET http://httpbin.org/status/500 resulted in')
         self.assertEqual(self.log_handler.records[log_index].levelno,
                          logging.WARN)
+
+    def test_that_logger_attribute_is_preserved(self):
+        self.fetch('/testing/200')
+        self.find_log_line_containing('got it')
+
+    def test_that_default_handler_reports_error(self):
+        response = self.fetch('/testing/500')
+        self.assertEqual(response.code, 500)
 
 
 class MixinTests(testing.AsyncHTTPTestCase):

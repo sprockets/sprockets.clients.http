@@ -32,7 +32,8 @@ class ClientMixin(object):
     def initialize(self):
         super(ClientMixin, self).initialize()
         self.__client = httpclient.AsyncHTTPClient()
-        self.logger = logging.getLogger(self.__class__.__name__)
+        if not hasattr(self, 'logger'):
+            self.logger = logging.getLogger(self.__class__.__name__)
 
     @gen.coroutine
     def make_http_request(self, server, *path, **kwargs):
