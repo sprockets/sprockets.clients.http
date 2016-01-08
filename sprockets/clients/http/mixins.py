@@ -69,5 +69,6 @@ class ClientMixin(object):
                 log = self.logger.error
             else:
                 log = self.logger.warn
-            log('%s %s resulted in %r', request.method, request.url, error)
+            log('%s %s resulted in %s %s', request.method, request.url,
+                error.code, error.message)
             on_error(self, request, error)
