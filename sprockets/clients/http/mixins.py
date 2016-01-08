@@ -72,3 +72,11 @@ class ClientMixin(object):
             log('%s %s resulted in %s %s', request.method, request.url,
                 error.code, error.message)
             on_error(self, request, error)
+
+    def set_status(self, status_code, reason=None):
+        # Overridden to remove the raising of ValueError when
+        # reason is None and status is a custom code.
+        try:
+            super(ClientMixin, self).set_status(status_code, reason)
+        except ValueError:
+            super(ClientMixin, self).set_status(status_code, 'Unknown Reason')

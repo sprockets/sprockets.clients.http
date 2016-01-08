@@ -106,3 +106,7 @@ class MixinTests(testing.AsyncHTTPTestCase):
 
         body = json.loads(response.body.decode('utf-8'))
         self.assertEqual(body['json']['uid'], uid)
+
+    def test_that_mixin_supports_custom_response_codes(self):
+        response = self.fetch('/601')
+        self.assertEqual(response.code, 601)
