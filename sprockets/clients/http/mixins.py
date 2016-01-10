@@ -1,5 +1,6 @@
 import logging
 
+from sprockets.clients.http import client
 from tornado import gen, httpclient, httputil, web
 
 
@@ -36,7 +37,7 @@ class ClientMixin(object):
 
     def initialize(self):
         super(ClientMixin, self).initialize()
-        self.__client = httpclient.AsyncHTTPClient()
+        self.__client = client.HTTPClient()
         if not hasattr(self, 'logger'):
             self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -63,8 +64,7 @@ class ClientMixin(object):
         request = httpclient.HTTPRequest(url, method=method, **kwargs)
 
         try:
-            self.logger.debug('sending %s %s', request.method, request.url)
-            response = yield self.__client.fetch(request)
+            response = yield self.__client.send_request(request)
             raise gen.Return(response)
 
         except httpclient.HTTPError as error:

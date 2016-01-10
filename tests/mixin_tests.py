@@ -41,17 +41,20 @@ class TestingHandler(http.ClientMixin, web.RequestHandler):
 
 
 class LoggingTests(testing.AsyncHTTPTestCase):
+    LOGGERS = ['HttpBinHandler',
+               'sprockets.clients.http.client.HTTPClient',
+               'testing']
 
     def setUp(self):
         super(LoggingTests, self).setUp()
         self.log_handler = RecordingHandler(level=logging.DEBUG)
-        logging.getLogger('HttpBinHandler').addHandler(self.log_handler)
-        logging.getLogger('testing').addHandler(self.log_handler)
+        for logger in self.LOGGERS:
+            logging.getLogger(logger).addHandler(self.log_handler)
 
     def tearDown(self):
         super(LoggingTests, self).tearDown()
-        logging.getLogger('HttpBinHandler').removeHandler(self.log_handler)
-        logging.getLogger('testing').removeHandler(self.log_handler)
+        for logger in self.LOGGERS:
+            logging.getLogger(logger).removeHandler(self.log_handler)
 
     def get_app(self):
         app = request_handler.make_application()
