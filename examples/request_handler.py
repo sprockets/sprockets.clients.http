@@ -8,7 +8,7 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     @gen.coroutine
     def get(self, status_code):
         response = yield self.make_http_request(
-            'http://httpbin.org', 'status', status_code,
+            'GET', 'http://httpbin.org', 'status', status_code,
             on_error=self.handle_api_error)
 
         if not self._finished:
@@ -23,7 +23,7 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     @gen.coroutine
     def post(self):
         response = yield self.make_http_request(
-            'http://httpbin.org/post', method='POST',
+            'POST', 'http://httpbin.org/post',
             body=self.request.body, headers=self.request.headers)
 
         if not self._finished:

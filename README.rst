@@ -18,7 +18,7 @@ not block the active IO loop.
        @gen.coroutine
        def get(self):
            response = yield self.make_http_request(
-               some_server_url, on_error=self.handle_api_error)
+               'GET', some_server_url, on_error=self.handle_api_error)
            if self._finished:
                yield gen.Return()
 

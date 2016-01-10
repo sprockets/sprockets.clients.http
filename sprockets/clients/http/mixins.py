@@ -41,14 +41,13 @@ class ClientMixin(object):
             self.logger = logging.getLogger(self.__class__.__name__)
 
     @gen.coroutine
-    def make_http_request(self, server, *path, **kwargs):
+    def make_http_request(self, method, server, *path, **kwargs):
         """
         Make a HTTP request and process the response.
 
+        :param str method: HTTP method to invoke
         :param str server: the host to send the request to
         :param path: resource path to request
-        :keyword str method: HTTP method to invoke.  If unspecifed,
-            the default is ``GET``.
         :keyword on_error: function to call if an error occurs.  If
             unspecified, :func:`.default_error_handler` is called.
         :param kwargs: additional keyword arguments are passed to the
@@ -60,9 +59,8 @@ class ClientMixin(object):
 
         """
         on_error = kwargs.pop('on_error', default_error_handler)
-        kwargs.setdefault('method', 'GET')
         url = '{}/{}'.format(server, '/'.join(path)) if path else server
-        request = httpclient.HTTPRequest(url, **kwargs)
+        request = httpclient.HTTPRequest(url, method=method, **kwargs)
 
         try:
             self.logger.debug('sending %s %s', request.method, request.url)

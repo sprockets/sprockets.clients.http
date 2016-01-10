@@ -34,7 +34,7 @@ class TestingHandler(http.ClientMixin, web.RequestHandler):
         conn_timeout = self.get_query_argument('connect_timeout', None)
         if conn_timeout is not None:
             kwargs['connect_timeout'] = float(conn_timeout)
-        response = yield self.make_http_request(server, 'status',
+        response = yield self.make_http_request('GET', server, 'status',
                                                 status_code, **kwargs)
         self.logger.info('got it')
         self.set_status(response.code)
