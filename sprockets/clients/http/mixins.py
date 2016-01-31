@@ -56,25 +56,23 @@ class ClientMixin(object):
 
         The ``on_error`` function is called with three parameters: the
         handler (i.e., ``self``), the :class:`~tornado.httpclient.HTTPRequest`
-        that failed, and the :class:`~tornado.httpclient.HTTPError`.
+        that failed, and the :class:`~sprockets.clients.http.client.HTTPError`.
 
         """
         on_error = kwargs.pop('on_error', default_error_handler)
-        url = '{}/{}'.format(server, '/'.join(path)) if path else server
-        request = httpclient.HTTPRequest(url, method=method, **kwargs)
-
         try:
-            response = yield self.__client.send_request(request)
+            response = yield self.__client.send_request(method, server,
+                                                        *path, **kwargs)
             raise gen.Return(response)
 
-        except httpclient.HTTPError as error:
+        except client.HTTPError as error:
             if error.code < 500:
                 log = self.logger.error
             else:
                 log = self.logger.warn
-            log('%s %s resulted in %s %s', request.method, request.url,
-                error.code, error.message)
-            on_error(self, request, error)
+            log('%s %s resulted in %s %s', error.request.method,
+                error.request.url, error.code, error.reason)
+            on_error(self, error.request, error)
 
     def set_status(self, status_code, reason=None):
         # Overridden to remove the raising of ValueError when
