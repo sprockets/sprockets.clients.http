@@ -33,3 +33,30 @@ That's it.  What you do not see is asynchronous client usage and logging
 that happens inside of the library.  There is some setup code in
 ``ClientMixin.initialize`` so make sure to call the super implementation
 if you implement ``initialize`` in your request handler.
+
+Running Tests
+-------------
+The test cases use the most excellent httpbin.org site to poke an HTTP API
+that responds to errors in a reliable manner. However this can cause failures
+if you happen to get rate limited by httpbin.org. If you want to be nice to
+the maintainers of httpbin.org, you can run a version in `docker`_ and point
+the tests at it instead.  The following snippet shows how to do this using
+`docker-machine`_ installed via `docker-toolbox`_:
+
+.. code-block:: bash
+
+   $ eval "$(docker-machine env default)"
+   $ machine_id=$(docker run -d -p 8000 citizenstig/httpbin)
+   $ export HTTPBIN_HOST=$(docker-machine ip default)
+   $ export HTTPBIN_PORT=$(docker port $machine_id 8000 | cut -d: -f2)
+   $ env/bin/nosetests
+   ........
+   ----------------------------------------------------------------------
+   Ran 8 tests in 0.255s
+
+   OK
+   $ docker stop $machine_id | xargs docker rm
+
+.. _docker: https://www.docker.com
+.. _docker-machine: https://www.docker.com/products/docker-machine
+.. _docker-toolbox: https://www.docker.com/products/docker-toolbox

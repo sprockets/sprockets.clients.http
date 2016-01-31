@@ -5,10 +5,14 @@ from tornado import gen, web
 class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     """Sends requests to httpbin.org."""
 
+    def initialize(self):
+        super(HttpBinHandler, self).initialize()
+        self.base_url = self.settings.get('base_url', 'http://httpbin.org')
+
     @gen.coroutine
     def get(self, status_code):
         response = yield self.make_http_request(
-            'GET', 'http://httpbin.org', 'status', status_code,
+            'GET', self.base_url, 'status', status_code,
             on_error=self.handle_api_error)
 
         if not self._finished:
@@ -23,7 +27,7 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     @gen.coroutine
     def post(self):
         response = yield self.make_http_request(
-            'POST', 'http://httpbin.org/post',
+            'POST', self.base_url, 'post',
             body=self.request.body, headers=self.request.headers)
 
         if not self._finished:

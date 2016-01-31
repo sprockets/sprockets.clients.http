@@ -1,11 +1,17 @@
 import json
 import logging
+import os
 import uuid
 
 from tornado import gen, testing, web
 
 from examples import request_handler
 from sprockets.clients import http
+
+
+HTTPBIN_BASE_URL = 'http://{}:{}'.format(
+    os.environ.get('HTTPBIN_HOST', 'httpbin.org'),
+    os.environ.get('HTTPBIN_PORT', '80'))
 
 
 class RecordingHandler(logging.Handler):
@@ -24,13 +30,13 @@ class TestingHandler(http.ClientMixin, web.RequestHandler):
 
     def initialize(self):
         self.logger = logging.getLogger('testing')
+        self.base_url = self.settings.get('base_url', HTTPBIN_BASE_URL)
         super(TestingHandler, self).initialize()
 
     @gen.coroutine
     def get(self, status_code):
         kwargs = {}
-        server = self.get_query_argument('server',
-                                         default='http://httpbin.org')
+        server = self.get_query_argument('server', default=self.base_url)
         conn_timeout = self.get_query_argument('connect_timeout', None)
         if conn_timeout is not None:
             kwargs['connect_timeout'] = float(conn_timeout)
@@ -46,6 +52,7 @@ class LoggingTests(testing.AsyncHTTPTestCase):
                'testing']
 
     def setUp(self):
+        self.base_url = HTTPBIN_BASE_URL
         super(LoggingTests, self).setUp()
         self.log_handler = RecordingHandler(level=logging.DEBUG)
         for logger in self.LOGGERS:
@@ -57,7 +64,7 @@ class LoggingTests(testing.AsyncHTTPTestCase):
             logging.getLogger(logger).removeHandler(self.log_handler)
 
     def get_app(self):
-        app = request_handler.make_application()
+        app = request_handler.make_application(base_url=self.base_url)
         app.add_handlers(r'.*', [
             web.url('/testing/(?P<status_code>\d+)', TestingHandler),
         ])
@@ -74,20 +81,20 @@ class LoggingTests(testing.AsyncHTTPTestCase):
         log_index = self.find_log_line_containing('sending GET ')
         self.assertEqual(self.log_handler.records[log_index].levelno,
                          logging.DEBUG)
-        self.assertIn('GET http://httpbin.org/status/200',
+        self.assertIn('GET {}/status/200'.format(self.base_url),
                       self.log_handler.lines[log_index])
 
     def test_that_client_errors_are_logged_at_error_level(self):
         self.fetch('/400')
         log_index = self.find_log_line_containing(
-            'GET http://httpbin.org/status/400 resulted in')
+            'GET {}/status/400 resulted in'.format(self.base_url))
         self.assertEqual(self.log_handler.records[log_index].levelno,
                          logging.ERROR)
 
     def test_that_server_errors_are_logged_at_warning_level(self):
         self.fetch('/500')
-        log_index = self.find_log_line_containing(
-            'GET http://httpbin.org/status/500 resulted in')
+        expected = 'GET {}/status/500 resulted in'.format(self.base_url)
+        log_index = self.find_log_line_containing(expected)
         self.assertEqual(self.log_handler.records[log_index].levelno,
                          logging.WARN)
 
@@ -102,8 +109,12 @@ class LoggingTests(testing.AsyncHTTPTestCase):
 
 class MixinTests(testing.AsyncHTTPTestCase):
 
+    def setUp(self):
+        self.base_url = HTTPBIN_BASE_URL
+        super(MixinTests, self).setUp()
+
     def get_app(self):
-        app = request_handler.make_application()
+        app = request_handler.make_application(base_url=self.base_url)
         app.add_handlers(r'.*', [
             web.url('/testing/(?P<status_code>\d+)', TestingHandler),
         ])
