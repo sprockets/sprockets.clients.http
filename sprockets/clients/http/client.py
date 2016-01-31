@@ -1,6 +1,6 @@
 import logging
 
-from tornado import gen, httpclient, httputil
+from tornado import gen, httpclient, httputil, web
 
 
 log = logging.getLogger(__name__)
@@ -57,6 +57,20 @@ class HTTPError(httpclient.HTTPError):
         response = http_error.response
         return HTTPError(http_request, http_error.code, response=response,
                          reason=None if response is None else response.reason)
+
+    def to_server_error(self):
+        """
+        Convert a client error into a :class:`tornado.web.HTTPError`
+
+        :return: a compatible :class:`tornado.web.HTTPError` instance
+
+        """
+        if self.code == 599:  # tornado custom response code
+            exc = web.HTTPError(503, 'API Timeout')
+        else:
+            exc = web.HTTPError(self.code)
+            exc.reason = self.reason
+        return exc
 
 
 class HTTPClient(object):

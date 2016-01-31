@@ -1,7 +1,7 @@
 import logging
 
 from sprockets.clients.http import client
-from tornado import gen, httpclient, httputil, web
+from tornado import gen
 
 
 def default_error_handler(handler_, request_, error):
@@ -12,24 +12,15 @@ def default_error_handler(handler_, request_, error):
         the request hander that made the request
     :param tornado.httpclient.HTTPRequest request_:
         the HTTP request that failed
-    :param tornado.httpclient.HTTPError error:
+    :param sprockets.clients.http.client.HTTPError error:
         the error that was returned
 
     This is the default error handler for :class:`.ClientMixin`.
-    It simply translates the :class:`~tornado.httpclient.HTTPError`
-    that the client generates into a :class:`tornado.web.HTTPError`
+    It simply translates `error` into a :class:`tornado.web.HTTPError`
     that the server framework expects.
 
     """
-    if error.code == 599:  # tornado custom response code
-        exc = web.HTTPError(503, 'API Timeout')
-    else:
-        exc = web.HTTPError(error.code)
-        if getattr(error, 'response'):
-            exc.reason = error.response.reason
-        if exc.reason is None:
-            exc.reason = httputil.responses.get(error.code, 'Unknown Error')
-    raise exc
+    raise error.to_server_error()
 
 
 class ClientMixin(object):
