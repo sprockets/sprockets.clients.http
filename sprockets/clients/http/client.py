@@ -1,4 +1,9 @@
 import logging
+try:
+    from urllib import parse
+except ImportError:
+    import urllib as parse
+
 
 from tornado import gen, httpclient, httputil, web
 
@@ -93,16 +98,31 @@ class HTTPClient(object):
         self.logger = log.getChild(self.__class__.__name__)
 
     @gen.coroutine
-    def send_request(self, method, server, *path, **kwargs):
+    def send_request(self, method, scheme, host, *path, **kwargs):
         """
         Send a HTTP request.
 
-        :param tornado.httpclient.HTTPRequest request: the request to send
+        :param str method: HTTP method to invoke
+        :param str scheme: URL scheme for the request
+        :param str host: host to send the request to.  This can be
+            a formatted IP address literal or DNS name.
+        :param path: resource path to request.  Elements of the path
+            are quoted as URL path segments and then joined by a ``/``
+            to form the resource path.
+        :keyword port: port to send the request to.  If omitted, the
+            port will be chosen based on the scheme.
+        :param kwargs: additional keyword arguments are passed to the
+            :class:`tornado.httpclient.HTTPRequest` initializer.
+
         :returns: :class:`tornado.httpclient.HTTPResponse` instance
         :raises: :class:`.HTTPError`
 
         """
-        target = '{}/{}'.format(server, '/'.join(str(s) for s in path))
+        port = kwargs.pop('port', None)
+        netloc = host if port is None else '{}:{}'.format(host, port)
+        target = '{}://{}/{}'.format(scheme, netloc,
+                                     '/'.join(parse.quote(str(s), safe='')
+                                              for s in path))
         request = httpclient.HTTPRequest(target, method=method, **kwargs)
         self.logger.debug('sending %s %s', request.method, request.url)
         try:

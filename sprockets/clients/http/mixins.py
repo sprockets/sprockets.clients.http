@@ -33,15 +33,21 @@ class ClientMixin(object):
             self.logger = logging.getLogger(self.__class__.__name__)
 
     @gen.coroutine
-    def make_http_request(self, method, server, *path, **kwargs):
+    def make_http_request(self, method, scheme, host, *path, **kwargs):
         """
         Make a HTTP request and process the response.
 
         :param str method: HTTP method to invoke
-        :param str server: the host to send the request to
-        :param path: resource path to request
+        :param str scheme: URL scheme for the request
+        :param str host: host to send the request to.  This can be
+            a formatted IP address literal or DNS name.
+        :param path: resource path to request.  Elements of the path
+            are quoted as URL path segments and then joined by a ``/``
+            to form the resource path.
         :keyword on_error: function to call if an error occurs.  If
             unspecified, :func:`.default_error_handler` is called.
+        :keyword port: port to send the request to.  If omitted, the
+            port will be chosen based on the scheme.
         :param kwargs: additional keyword arguments are passed to the
             :class:`tornado.httpclient.HTTPRequest` initializer.
 
@@ -50,10 +56,12 @@ class ClientMixin(object):
         that failed, and the :class:`~sprockets.clients.http.client.HTTPError`.
 
         """
-        on_error = kwargs.pop('on_error', default_error_handler)
+        port = kwargs.pop('port', None)
+        on_error = kwargs.pop('on_error', None) or default_error_handler
         try:
-            response = yield self.__client.send_request(method, server,
-                                                        *path, **kwargs)
+            response = yield self.__client.send_request(method, scheme, host,
+                                                        *path, port=port,
+                                                        **kwargs)
             raise gen.Return(response)
 
         except client.HTTPError as error:

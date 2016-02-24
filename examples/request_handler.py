@@ -7,13 +7,15 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
 
     def initialize(self):
         super(HttpBinHandler, self).initialize()
-        self.base_url = self.settings.get('base_url', 'http://httpbin.org')
+        self.scheme = self.settings.get('scheme', 'http')
+        self.server = self.settings.get('server', 'httpbin.org')
+        self.port = self.settings.get('port', None)
 
     @gen.coroutine
     def get(self, status_code):
         response = yield self.make_http_request(
-            'GET', self.base_url, 'status', status_code,
-            on_error=self.handle_api_error)
+            'GET', self.scheme, self.server, 'status', status_code,
+            port=self.port, on_error=self.handle_api_error)
 
         if not self._finished:
             self.set_status(200)
@@ -27,7 +29,7 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     @gen.coroutine
     def post(self):
         response = yield self.make_http_request(
-            'POST', self.base_url, 'post',
+            'POST', self.scheme, self.server, 'post', port=self.port,
             body=self.request.body, headers=self.request.headers)
 
         if not self._finished:
