@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import uuid
 
 from tornado import gen, testing, web
@@ -8,13 +7,7 @@ from tornado import gen, testing, web
 from examples import request_handler
 from sprockets.clients import http
 
-
-HTTPBIN_SERVER = os.environ.get('HTTPBIN_HOST', 'httpbin.org')
-HTTPBIN_PORT = os.environ.get('HTTPBIN_PORT', None)
-if HTTPBIN_PORT:
-    HTTPBIN_URL = 'http://{}:{}'.format(HTTPBIN_SERVER, HTTPBIN_PORT)
-else:
-    HTTPBIN_URL = 'http://{}'.format(HTTPBIN_SERVER)
+from tests import HTTPBIN_PORT, HTTPBIN_SERVER, HTTPBIN_URL
 
 
 class RecordingHandler(logging.Handler):
