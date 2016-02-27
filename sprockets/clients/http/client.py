@@ -88,14 +88,26 @@ class HTTPClient(object):
         initializer
 
     This class serves as a more intelligent version of
-    :class:`~tornado.httpclient.AsyncHTTPClient`.
+    :class:`~tornado.httpclient.AsyncHTTPClient`.  You can access the
+    underlying ``AsyncHTTPClient`` instance using the :attr:`.client`
+    attribute if need be.
 
     """
 
     def __init__(self, *args, **kwargs):
         super(HTTPClient, self).__init__()
-        self.client = httpclient.AsyncHTTPClient(*args, **kwargs)
+        self._client_args = args
+        self._client_kwargs = kwargs
+        self._client = None
         self.logger = log.getChild(self.__class__.__name__)
+
+    @property
+    def client(self):
+        """Underlying :class:`tornado.httpclient.AsyncHTTPClient` instance"""
+        if self._client is None:
+            self._client = httpclient.AsyncHTTPClient(*self._client_args,
+                                                      **self._client_kwargs)
+        return self._client
 
     @gen.coroutine
     def send_request(self, method, scheme, host, *path, **kwargs):

@@ -70,3 +70,6 @@ class HttpClientTests(testing.AsyncTestCase):
         body = json.loads(response.body.decode('utf-8'))
         self.assertEqual(body['kwargs'], {'one': 'with spaces ',
                                           'two': 'and/with/slashes'})
+
+    def test_that_client_is_cached(self):
+        self.assertIs(self.client.client, self.client.client)
