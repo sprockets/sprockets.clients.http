@@ -24,11 +24,19 @@ def default_error_handler(handler_, request_, error):
 
 
 class ClientMixin(object):
-    """Mix this in to add the ``make_http_request`` method."""
+    """
+    Mix this in to add the ``make_http_request`` method.
+
+    .. attribute:: http_client
+
+       The :class:`~sprockets.clients.http.client.HTTPClient` instance
+       that :meth:`.make_http_request` uses.
+
+    """
 
     def initialize(self):
         super(ClientMixin, self).initialize()
-        self.__client = client.HTTPClient()
+        self.http_client = client.HTTPClient()
         if not hasattr(self, 'logger'):
             self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -59,9 +67,8 @@ class ClientMixin(object):
         port = kwargs.pop('port', None)
         on_error = kwargs.pop('on_error', None) or default_error_handler
         try:
-            response = yield self.__client.send_request(method, scheme, host,
-                                                        *path, port=port,
-                                                        **kwargs)
+            response = yield self.http_client.send_request(
+                method, scheme, host, *path, port=port, **kwargs)
             raise gen.Return(response)
 
         except client.HTTPError as error:
