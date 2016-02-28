@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from tornado import httpserver, testing, web
 import tornado.httpclient
@@ -14,6 +15,7 @@ class EchoHandler(web.RequestHandler):
         self.write(json.dumps({
             'path': path,
             'kwargs': kwargs,
+            'headers': dict(self.request.headers),
         }).encode('utf-8'))
         self.set_status(200)
 
@@ -73,3 +75,36 @@ class HttpClientTests(testing.AsyncTestCase):
 
     def test_that_client_is_cached(self):
         self.assertIs(self.client.client, self.client.client)
+
+    @testing.gen_test
+    def test_that_headers_from_attribute_are_sent_with_request(self):
+        self.client.headers['Correlation-ID'] = str(uuid.uuid4())
+        app = web.Application([web.url('/', EchoHandler)])
+        server_ip, server_port = self.start_application(app)
+
+        response = yield self.client.send_request('GET', 'http',
+                                                  server_ip, port=server_port)
+        self.assertEqual(response.code, 200)
+
+        # N.B. header name case is not preserved through tornado's
+        # various layers so the key is `Correlation-Id` AND NOT
+        # `Correlation-ID` as you might expect
+        body = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(body['headers']['Correlation-Id'],
+                         self.client.headers['Correlation-ID'])
+
+    @testing.gen_test
+    def test_that_request_headers_overwrite_attribute_headers(self):
+        self.client.headers['Correlation-ID'] = str(uuid.uuid4())
+        specific_id = str(uuid.uuid4())
+        request_headers = {'correlation-id': specific_id}
+        app = web.Application([web.url('/', EchoHandler)])
+        server_ip, server_port = self.start_application(app)
+
+        response = yield self.client.send_request('GET', 'http', server_ip,
+                                                  port=server_port,
+                                                  headers=request_headers)
+        self.assertEqual(response.code, 200)
+
+        body = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(body['headers']['Correlation-Id'], specific_id)

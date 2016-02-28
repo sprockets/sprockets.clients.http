@@ -92,6 +92,11 @@ class HTTPClient(object):
     underlying ``AsyncHTTPClient`` instance using the :attr:`.client`
     attribute if need be.
 
+    .. attribute:: headers
+
+       :class:`tornado.httputil.HTTPHeaders` instance that is sent with
+       each HTTP Request.
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -99,6 +104,7 @@ class HTTPClient(object):
         self._client_args = args
         self._client_kwargs = kwargs
         self._client = None
+        self.headers = httputil.HTTPHeaders()
         self.logger = log.getChild(self.__class__.__name__)
 
     @property
@@ -135,6 +141,13 @@ class HTTPClient(object):
         target = '{}://{}/{}'.format(scheme, netloc,
                                      '/'.join(parse.quote(str(s), safe='')
                                               for s in path))
+        if 'headers' in kwargs:
+            headers = self.headers.copy()
+            headers.update(kwargs.pop('headers'))
+            kwargs['headers'] = headers
+        else:
+            kwargs['headers'] = self.headers
+
         request = httpclient.HTTPRequest(target, method=method, **kwargs)
         self.logger.debug('sending %s %s', request.method, request.url)
         try:
