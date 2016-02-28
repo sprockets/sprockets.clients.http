@@ -5,7 +5,7 @@ except ImportError:
     import urllib as parse
 
 
-from tornado import gen, httpclient, httputil, web
+from tornado import concurrent, httpclient, httputil, web
 
 
 log = logging.getLogger(__name__)
@@ -115,7 +115,6 @@ class HTTPClient(object):
                                                       **self._client_kwargs)
         return self._client
 
-    @gen.coroutine
     def send_request(self, method, scheme, host, *path, **kwargs):
         """
         Send a HTTP request.
@@ -132,7 +131,8 @@ class HTTPClient(object):
         :param kwargs: additional keyword arguments are passed to the
             :class:`tornado.httpclient.HTTPRequest` initializer.
 
-        :returns: :class:`tornado.httpclient.HTTPResponse` instance
+        :returns: :class:`tornado.concurrent.Future` that resolves to
+            a :class:`tornado.httpclient.HTTPResponse` instance
         :raises: :class:`.HTTPError`
 
         """
@@ -150,9 +150,19 @@ class HTTPClient(object):
 
         request = httpclient.HTTPRequest(target, method=method, **kwargs)
         self.logger.debug('sending %s %s', request.method, request.url)
-        try:
-            response = yield self.client.fetch(request)
-            raise gen.Return(response)
 
-        except httpclient.HTTPError as error:
-            raise HTTPError.from_tornado_error(request, error)
+        future = concurrent.TracebackFuture()
+
+        def handle_response(f):
+            try:
+                future.set_result(f.result())
+            except httpclient.HTTPError as error:
+                future.set_exception(HTTPError.from_tornado_error(request,
+                                                                  error))
+            except Exception as exception:
+                future.set_exception(exception)
+
+        coro = self.client.fetch(request)
+        self.client.io_loop.add_future(coro, handle_response)
+
+        return future
