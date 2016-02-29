@@ -16,7 +16,7 @@ class Consumer(http.ClientMixin, consumer.Consumer):
     @gen.coroutine
     def process(self):
         yield self.make_http_request(
-            'http://httpbin.org', 'status', self.body,
+            'GET', 'http', 'httpbin.org', 'status', self.body,
             headers={'Accept': 'application/json'},
             on_error=self.translate_http_error)
 
