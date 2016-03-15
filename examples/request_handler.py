@@ -15,7 +15,7 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
     def get(self, status_code):
         response = yield self.make_http_request(
             'GET', self.scheme, self.server, 'status', status_code,
-            port=self.port, on_error=self.handle_api_error)
+            port=self.port)
 
         if not self._finished:
             self.set_status(200)
@@ -41,11 +41,10 @@ class HttpBinHandler(http.ClientMixin, web.RequestHandler):
                 self.write(response.body)
             self.finish()
 
-    def handle_api_error(self, _, request, error):
+    def on_http_request_error(self, request, error):
         """
         Call ``send_error`` based on a httpclient.HTTPError.
 
-        :param tornado.web.RequestHandler _: handler that made the request
         :param tornado.web.HTTPRequest request: the request that was made
         :param tornado.httpclient.HTTPError error: the failure
 

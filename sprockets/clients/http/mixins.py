@@ -4,25 +4,6 @@ from sprockets.clients.http import client
 from tornado import gen
 
 
-def default_error_handler(handler_, request_, error):
-    """
-    Translates a HTTP client error to a server error.
-
-    :param tornado.web.RequestHandler handler_:
-        the request hander that made the request
-    :param tornado.httpclient.HTTPRequest request_:
-        the HTTP request that failed
-    :param sprockets.clients.http.client.HTTPError error:
-        the error that was returned
-
-    This is the default error handler for :class:`.ClientMixin`.
-    It simply translates `error` into a :class:`tornado.web.HTTPError`
-    that the server framework expects.
-
-    """
-    raise error.to_server_error()
-
-
 class ClientMixin(object):
     """
     Mix this in to add the ``make_http_request`` method.
@@ -65,7 +46,8 @@ class ClientMixin(object):
 
         """
         port = kwargs.pop('port', None)
-        on_error = kwargs.pop('on_error', None) or default_error_handler
+        on_error = kwargs.pop('on_error', None)
+
         try:
             response = yield self.http_client.send_request(
                 method, scheme, host, *path, port=port, **kwargs)
@@ -78,7 +60,26 @@ class ClientMixin(object):
                 log = self.logger.warn
             log('%s %s resulted in %s %s', error.request.method,
                 error.request.url, error.code, error.reason)
-            on_error(self, error.request, error)
+            if on_error:
+                on_error(self, error.request, error)
+            else:
+                self.on_http_request_error(error.request, error)
+
+    def on_http_request_error(self, request, error):
+        """
+        Translates a HTTP client error to a server error.
+
+        :param tornado.httpclient.HTTPRequest request:
+            the HTTP request that failed
+        :param sprockets.clients.http.client.HTTPError error:
+            the error that was returned
+
+        This is the default error handler for :class:`.ClientMixin`.
+        It simply translates `error` into a :class:`tornado.web.HTTPError`
+        that the server framework expects.
+
+        """
+        raise error.to_server_error()
 
     def set_status(self, status_code, reason=None):
         # Overridden to remove the raising of ValueError when
