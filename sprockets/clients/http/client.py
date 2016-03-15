@@ -115,6 +115,11 @@ class HTTPClient(object):
                                                       **self._client_kwargs)
         return self._client
 
+    @property
+    def io_loop(self):
+        """:class:`tornado.ioloop.IOLoop` instance used by the client."""
+        return self.client.io_loop
+
     def send_request(self, method, scheme, host, *path, **kwargs):
         """
         Send a HTTP request.
@@ -157,12 +162,12 @@ class HTTPClient(object):
             try:
                 future.set_result(f.result())
             except httpclient.HTTPError as error:
-                future.set_exception(HTTPError.from_tornado_error(request,
-                                                                  error))
+                future.set_exception(
+                    HTTPError.from_tornado_error(request, error))
             except Exception as exception:
                 future.set_exception(exception)
 
         coro = self.client.fetch(request)
-        self.client.io_loop.add_future(coro, handle_response)
+        self.io_loop.add_future(coro, handle_response)
 
         return future
