@@ -10,10 +10,10 @@ not block the active IO loop.
 
 .. code-block:: python
 
-   from sprockets.clients import http
+   from sprockets.clients.http import mixins
    from tornado import gen, web
 
-   class MyHandler(http.ClientMixin, web.RequestHandler):
+   class MyHandler(mixins.ClientMixin, web.RequestHandler):
 
        @gen.coroutine
        def get(self):

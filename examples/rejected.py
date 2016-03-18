@@ -1,9 +1,9 @@
 from rejected import consumer
-from sprockets.clients import http
+from sprockets.clients.http import mixins
 from tornado import gen
 
 
-class Consumer(http.ClientMixin, consumer.Consumer):
+class Consumer(mixins.ClientMixin, consumer.Consumer):
     """
     Makes requests against httpbin.org.
 

@@ -5,7 +5,7 @@ import uuid
 from tornado import gen, testing, web
 
 from examples import request_handler
-from sprockets.clients import http
+from sprockets.clients.http import mixins
 
 from tests import HTTPBIN_PORT, HTTPBIN_SERVER, HTTPBIN_URL
 
@@ -22,7 +22,7 @@ class RecordingHandler(logging.Handler):
         self.lines.append(self.format(record))
 
 
-class TestingHandler(http.ClientMixin, web.RequestHandler):
+class TestingHandler(mixins.ClientMixin, web.RequestHandler):
 
     def initialize(self):
         self.logger = logging.getLogger('testing')

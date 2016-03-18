@@ -1,8 +1,8 @@
-from sprockets.clients import http
+from sprockets.clients.http import mixins
 from tornado import gen, web
 
 
-class HttpBinHandler(http.ClientMixin, web.RequestHandler):
+class HttpBinHandler(mixins.ClientMixin, web.RequestHandler):
     """Sends requests to httpbin.org."""
 
     def initialize(self):
