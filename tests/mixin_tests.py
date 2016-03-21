@@ -135,3 +135,14 @@ class MixinTests(testing.AsyncHTTPTestCase):
                               '?server=example.com&port=7'
                               '&connect_timeout=0.1')
         self.assertEqual(response.code, 503)
+
+    def test_that_mixin_sniffs_correlation_id_property(self):
+        cid = str(uuid.uuid4())
+        response = self.fetch('/post', method='POST', body='{}',
+                              headers={'Accept': 'application/json',
+                                       'Correlation-ID': cid,
+                                       'Content-Type': 'application/json'})
+        self.assertEqual(response.code, 200)
+
+        body = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(body['headers']['Correlation-Id'], cid)

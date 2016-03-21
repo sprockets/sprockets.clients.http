@@ -1,7 +1,7 @@
 import logging
 
 from sprockets.clients.http import client
-from tornado import concurrent
+from tornado import concurrent, gen
 
 
 class ClientMixin(object):
@@ -20,6 +20,15 @@ class ClientMixin(object):
         self.http_client = client.HTTPClient()
         if not hasattr(self, 'logger'):
             self.logger = logging.getLogger(self.__class__.__name__)
+
+    @gen.coroutine
+    def prepare(self):
+        maybe_future = super(ClientMixin, self).prepare()
+        if concurrent.is_future(maybe_future):
+            yield maybe_future
+
+        if hasattr(self, 'correlation_id'):
+            self.http_client.headers['Correlation-ID'] = self.correlation_id
 
     def make_http_request(self, method, scheme, host, *path, **kwargs):
         """

@@ -1,8 +1,11 @@
 from sprockets.clients.http import mixins
 from tornado import gen, web
+import sprockets.mixins.correlation
 
 
-class HttpBinHandler(mixins.ClientMixin, web.RequestHandler):
+class HttpBinHandler(mixins.ClientMixin,
+                     sprockets.mixins.correlation.HandlerMixin,
+                     web.RequestHandler):
     """Sends requests to httpbin.org."""
 
     def initialize(self):
@@ -28,9 +31,11 @@ class HttpBinHandler(mixins.ClientMixin, web.RequestHandler):
 
     @gen.coroutine
     def post(self):
+        content_type = self.request.headers.get('Content-Type',
+                                                'application/octet-stream')
         response = yield self.make_http_request(
             'POST', self.scheme, self.server, 'post', port=self.port,
-            body=self.request.body, headers=self.request.headers)
+            body=self.request.body, headers={'Content-Type': content_type})
 
         if not self._finished:
             self.set_status(200)
@@ -46,10 +51,10 @@ class HttpBinHandler(mixins.ClientMixin, web.RequestHandler):
         Call ``send_error`` based on a httpclient.HTTPError.
 
         :param tornado.web.HTTPRequest request: the request that was made
-        :param tornado.httpclient.HTTPError error: the failure
+        :param sprockets.clients.http.client.HTTPError error: the failure
 
         """
-        self.send_error(error.code)
+        self.send_error(error.code, reason=getattr(error, 'reason', None))
 
 
 def make_application(**settings):
