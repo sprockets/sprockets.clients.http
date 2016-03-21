@@ -75,6 +75,8 @@ class HTTPError(httpclient.HTTPError):
         else:
             exc = web.HTTPError(self.code)
             exc.reason = self.reason
+        if not exc.reason:
+            exc.reason = httputil.responses.get(self.code, 'Unknown')
         return exc
 
 
