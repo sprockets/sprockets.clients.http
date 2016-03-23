@@ -1,9 +1,8 @@
 import logging
 try:
     from urllib import parse
-except ImportError:
+except ImportError:  # pragma no cover
     import urllib as parse
-
 
 from tornado import concurrent, httpclient, httputil, web
 
