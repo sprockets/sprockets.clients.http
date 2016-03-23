@@ -119,7 +119,15 @@ class HTTPClient(object):
 
     @property
     def io_loop(self):
-        """:class:`tornado.ioloop.IOLoop` instance used by the client."""
+        """
+        :class:`tornado.ioloop.IOLoop` instance used by the client.
+
+        This is useful if you want to add callbacks to the same IOLoop
+        that the HTTP client is going to use.  If you need to control
+        which IOLoop is used for whatever reason, pass a custom IOLoop
+        to the initializer as the ``io_loop`` keyword parameter.
+
+        """
         return self.client.io_loop
 
     def send_request(self, method, scheme, host, *path, **kwargs):
@@ -160,16 +168,21 @@ class HTTPClient(object):
 
         future = concurrent.TracebackFuture()
 
-        def handle_response(f):
-            try:
+        def handle_future(f):
+            exc = f.exception()
+            if isinstance(exc, httpclient.HTTPError):
+                if exc.code == 599:
+                    future.set_exception(HTTPError(request, 503, 'API Timeout',
+                                                   response=exc.response))
+                else:
+                    future.set_exception(HTTPError.from_tornado_error(
+                        request, exc))
+            elif exc:
+                future.set_exception(exc)
+            else:
                 future.set_result(f.result())
-            except httpclient.HTTPError as error:
-                future.set_exception(
-                    HTTPError.from_tornado_error(request, error))
-            except Exception as exception:
-                future.set_exception(exception)
 
         coro = self.client.fetch(request)
-        self.io_loop.add_future(coro, handle_response)
+        self.io_loop.add_future(coro, handle_future)
 
         return future
