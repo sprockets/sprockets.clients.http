@@ -17,8 +17,7 @@ not block the active IO loop.
 
        @gen.coroutine
        def get(self):
-           response = yield self.make_http_request(
-               'GET', some_server_url, on_error=self.handle_api_error)
+           response = yield self.make_http_request('GET', some_server_url)
            if self._finished:
                yield gen.Return()
 
@@ -26,7 +25,7 @@ not block the active IO loop.
            # ...
            self.finish()
 
-       def handle_api_error(self, request, error):
+       def on_http_request_error(self, request, error):
            self.send_error(error.code)
 
 That's it.  What you do not see is asynchronous client usage and logging
